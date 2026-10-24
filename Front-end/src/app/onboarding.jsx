@@ -424,11 +424,10 @@ export default function Onboarding({ initialIndex = 0 }) {
 
   const handleNext = useCallback(() => goTo(index + 1), [goTo, index]);
 
+  // "Join Khameo" opens the login page (src/app/(auth)/login.jsx).
   const handleJoin = useCallback(() => {
-    // TODO: hand over to sign-up / login (Laravel API) once the backend is ready.
-    // eslint-disable-next-line no-console
-    console.log('Join Khameo');
-  }, []);
+    router.replace('/login');
+  }, [router]);
 
   // Android back button steps back through the pages, then leaves the flow
   useEffect(() => {

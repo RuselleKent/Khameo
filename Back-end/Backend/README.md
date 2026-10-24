@@ -1,58 +1,56 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Khameo API (Laravel + Supabase Postgres)
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Backend for login, register, 6-digit email code, forgot/reset password, and Google sign-in.
+Supabase is only the database. Laravel does all the login logic.
 
-## About Laravel
+## Setup (once)
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+1. Make a Laravel project (version 11 or 12):
+   `composer create-project laravel/laravel khameo-api`
+2. In the project: `php artisan install:api`  (adds Sanctum + `routes/api.php`)
+3. **Delete** `database/migrations/0001_01_01_000000_create_users_table.php` (ours replaces it).
+4. Copy everything from this folder into the project. Replace files if asked.
+   (`bootstrap/app.php` is not touched. `install:api` already set it up.)
+5. Copy the lines from `.env.example.khameo` into your `.env` and fill in your Supabase values.
+6. `php artisan migrate`
+7. `php artisan serve --host=0.0.0.0`
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Supabase notes
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+- Use the **Session pooler** (port 5432) in `DB_HOST`. The direct host only works on IPv6 networks.
+- Do not use port 6543 (transaction pooler) for migrations.
+- The last migration turns on Row Level Security for every table. It blocks Supabase's public API from reading your users. Laravel still works. Run `php artisan migrate` again after you add new tables, or add `ENABLE ROW LEVEL SECURITY` in each new migration.
 
-## Learning Laravel
+## Tables
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+| Table | Purpose |
+|---|---|
+| `users` | email (lowercase), password (hashed, empty for Google-only), google_id, email_verified_at |
+| `verification_codes` | hashed 6-digit code, expires_at, attempts, locked_until, sent_at |
+| `password_reset_tokens` | Laravel reset tokens |
+| `personal_access_tokens` | login tokens (Sanctum) |
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+## Endpoints (all under `/api`)
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
+| Method | URL | Body | Answer |
+|---|---|---|---|
+| POST | /register | email, password, password_confirmation | 201, sends code |
+| POST | /verify-code | email, code | `{user, token}` |
+| POST | /resend-code | email | 200 / 429 |
+| POST | /login | email, password, remember | `{user, token}` or 403 `needs_verification` |
+| POST | /forgot-password | email | 200 |
+| POST | /reset-password | token, email, password, password_confirmation | 200 |
+| POST | /auth/google | id_token | `{user, token, linked}` |
+| GET | /me | (token) | `{user}` |
+| POST | /logout | (token) | 200 |
 
-## Agentic Development
+Errors use Laravel's format: `{ "message": "...", "errors": { "email": ["..."] } }`.
+Lockout answers 429 with `locked_until` (milliseconds).
 
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+## Rules (change in `app/Services/VerificationCodeService.php`)
 
-```bash
-composer require laravel/boost --dev
+Code works 10 minutes. 5 wrong tries lock for 5 minutes. A new code can be sent every 60 seconds.
 
-php artisan boost:install
-```
+## Testing without email
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
-
-## Contributing
-
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
-
-## Code of Conduct
-
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
-
-## Security Vulnerabilities
-
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
-
-## License
-
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+With `MAIL_MAILER=log`, open `storage/logs/laravel.log` and find the code or the reset link.

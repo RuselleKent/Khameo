@@ -454,7 +454,7 @@ export default function SplashScreen() {
               opacity: 0.7,
             }}
           >
-          
+            
           </Text>
         </Pressable>
       )}
