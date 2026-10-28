@@ -1,0 +1,51 @@
+# Render Blueprint. Ito ang nagsasabi sa Render kung paano i-deploy ang backend.
+# Ang mga may "sync: false" ay secret: ilalagay mo sa Render dashboard, hindi dito.
+services:
+  - type: web
+    name: khameo-api
+    runtime: docker
+    plan: free
+    region: singapore
+    rootDir: Back-end/Backend
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /up
+    envVars:
+      - key: APP_NAME
+        value: Khameo
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: "false"
+      - key: LOG_CHANNEL
+        value: stderr
+      - key: SESSION_DRIVER
+        value: array
+      - key: CACHE_STORE
+        value: file
+      - key: QUEUE_CONNECTION
+        value: sync
+      - key: DB_CONNECTION
+        value: pgsql
+      - key: DB_PORT
+        value: "5432"
+      - key: DB_DATABASE
+        value: postgres
+      - key: DB_SSLMODE
+        value: require
+      # --- Secrets: ilagay sa dashboard ---
+      - key: APP_KEY
+        sync: false
+      - key: DB_HOST
+        sync: false
+      - key: DB_USERNAME
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: BREVO_API_KEY
+        sync: false
+      - key: MAIL_FROM_ADDRESS
+        sync: false
+      - key: MAIL_FROM_NAME
+        value: Khameo
+      - key: FRONTEND_RESET_URL
+        sync: false

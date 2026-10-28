@@ -6,7 +6,10 @@ use App\Http\Controllers\Api\PasswordResetController;
 use App\Http\Controllers\Api\VerificationController;
 use Illuminate\Support\Facades\Route;
 
-// Public
+// Lahat ng route dito may prefix na /api (hal. POST /api/login).
+// Ang "throttle:10,1" ay 10 requests kada 1 minuto bawat IP.
+
+// --- Public (hindi kailangan ng token) ---
 Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:10,1');
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:10,1');
 
@@ -18,7 +21,7 @@ Route::post('/reset-password', [PasswordResetController::class, 'reset'])->middl
 
 Route::post('/auth/google', GoogleAuthController::class)->middleware('throttle:10,1');
 
-// Needs a token
+// --- Kailangan ng token (Authorization: Bearer ...) ---
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/me', [AuthController::class, 'me']);
     Route::post('/logout', [AuthController::class, 'logout']);

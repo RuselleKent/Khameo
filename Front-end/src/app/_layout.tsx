@@ -1,13 +1,21 @@
+import { useEffect } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { AuthProvider } from '../context/AuthContext';
+import { wakeServer } from '../services/auth';
 
-// Plain stack: no header, no tab bar, no status bar. AuthProvider gives every screen the login state.
+// Pinakalabas na layout ng app. Walang header at walang tab bar.
+// Ang AuthProvider ang nagbibigay ng login state sa lahat ng screen.
 export default function RootLayout() {
-  return (
-    <AuthProvider>
-      <StatusBar hidden />
-      <Stack screenOptions={{ headerShown: false, animation: 'fade' }} />
-    </AuthProvider>
-  );
+    // Gisingin agad ang backend pagbukas ng app (natutulog ang free Render)
+    useEffect(() => {
+        wakeServer();
+    }, []);
+
+    return (
+        <AuthProvider>
+            <StatusBar hidden />
+            <Stack screenOptions={{ headerShown: false, animation: 'fade' }} />
+        </AuthProvider>
+    );
 }

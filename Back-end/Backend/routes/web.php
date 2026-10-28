@@ -2,11 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 
-// Tells your team the backend engine is running perfectly
+// Simpleng check lang na buhay ang API. Walang sensitive info dito.
 Route::get('/', function () {
-    return response()->json([
-        'status' => 'Laravel Backend Engine Active',
-        'framework' => 'Laravel ' . app()->version(),
-        'environment' => config('app.env')
-    ]);
+    return response()->json(['app' => 'Khameo API', 'status' => 'ok']);
 });

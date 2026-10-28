@@ -12,11 +12,11 @@ return new class extends Migration
             $table->id();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
             $table->string('purpose')->default('email_verification');
-            $table->string('code_hash');                         // the code is never saved as plain text
+            $table->string('code_hash');                         // hindi sine-save ang mismong code, hash lang
             $table->timestamp('expires_at');
-            $table->unsignedTinyInteger('attempts')->default(0); // wrong tries
-            $table->timestamp('locked_until')->nullable();       // set after too many wrong tries
-            $table->timestamp('sent_at')->nullable();            // for the "Resend in 00:59" limit
+            $table->unsignedTinyInteger('attempts')->default(0); // bilang ng maling try
+            $table->timestamp('locked_until')->nullable();       // may laman kapag na-lock
+            $table->timestamp('sent_at')->nullable();            // para sa 60 seconds na hintay sa Resend
             $table->timestamps();
 
             $table->unique(['user_id', 'purpose']);
