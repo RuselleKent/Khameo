@@ -1,4 +1,4 @@
-# Render Blueprint. Ito ang nagsasabi sa Render kung paano i-deploy ang backend.
+# Render Blueprint (optional). Pwede mo ring gawin ang service nang manu-mano (tingnan ang README).
 # Ang mga may "sync: false" ay secret: ilalagay mo sa Render dashboard, hindi dito.
 services:
   - type: web

@@ -16,23 +16,29 @@ export function AuthProvider({ children }) {
             const saved = await getJSON(SESSION_KEY, null);
 
             if (saved?.user) {
+                // Ipakita agad ang app. Hindi na hinihintay ang server,
+                // kasi kapag natutulog ang Render, aabutin ito ng ~1 minuto.
                 api.setToken(saved.token);
-                const check = await api.me();
-
-                if (!check.ok && check.status === 401) {
-                    // Tinanggihan ng server ang token (expired): kalimutan na ito
-                    api.setToken(null);
-                    await remove(SESSION_KEY);
-                } else {
-                    // OK, o walang internet: panatilihin ang session
-                    setUser(saved.user);
-                }
+                setUser(saved.user);
+                checkTokenInBackground();
             }
             setReady(true);
         })();
     }, []);
 
-    // Pagka-login: i-save ang token. Naka-save sa phone lang kapag "Remember me".
+    // Tanungin ang server kung valid pa ang token. Kapag expired (401), i-logout.
+    // Kapag walang internet, panatilihin ang session.
+    async function checkTokenInBackground() {
+        const check = await api.me();
+
+        if (!check.ok && check.status === 401) {
+            api.setToken(null);
+            setUser(null);
+            await remove(SESSION_KEY);
+        }
+    }
+
+    // Pagka-login: i-save ang token. Naka-save sa phone lang kapag "Remember me"
     const signIn = useCallback(async ({ user, token }, remember) => {
         api.setToken(token);
         setUser(user);

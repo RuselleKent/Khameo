@@ -21,7 +21,7 @@ class VerificationController extends Controller
             'code' => ['required', 'digits:6'],
         ], ['code.digits' => 'Invalid code. Please check and try again.']);
 
-        $user = User::where('email', strtolower(trim($data['email'])))->first();
+        $user = User::findByEmail($data['email']);
 
         if (! $user) {
             return response()->json(['message' => 'Invalid code. Please check and try again.'], 422);
@@ -45,17 +45,14 @@ class VerificationController extends Controller
             ], 429);
         }
 
-        return response()->json([
-            'message' => $result['message'],
-            'errors' => ['code' => [$result['message']]],
-        ], 422);
+        return $this->fieldError('code', $result['message']);
     }
 
     // POST /api/resend-code
     public function resend(Request $request): JsonResponse
     {
         $data = $request->validate(['email' => ['required', 'email']]);
-        $user = User::where('email', strtolower(trim($data['email'])))->first();
+        $user = User::findByEmail($data['email']);
 
         // Pareho ang sagot kahit walang account, para hindi mahuhulaan kung sino ang registered.
         if (! $user || $user->email_verified_at) {

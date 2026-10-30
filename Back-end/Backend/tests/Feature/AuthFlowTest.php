@@ -193,6 +193,53 @@ class AuthFlowTest extends TestCase
         $this->postJson('/api/forgot-password', ['email' => 'nobody@example.com'])->assertStatus(422);
     }
 
+    public function test_password_is_not_too_long(): void
+    {
+        $long = str_repeat('a', 65);
+
+        $this->postJson('/api/register', [
+            'email' => 'kent@example.com',
+            'password' => $long,
+            'password_confirmation' => $long,
+        ])->assertStatus(422)->assertJsonPath('errors.password.0', 'Password must be 64 characters or less.');
+    }
+
+    public function test_too_many_login_tries_for_one_email_are_blocked(): void
+    {
+        // 5 tries lang kada minuto para sa iisang email, kahit magpalit-palit ng IP
+        for ($i = 0; $i < 5; $i++) {
+            $this->postJson('/api/login', ['email' => 'kent@example.com', 'password' => 'wrong-pass'])
+                ->assertStatus(422);
+        }
+
+        $this->postJson('/api/login', ['email' => 'kent@example.com', 'password' => 'wrong-pass'])
+            ->assertStatus(429)
+            ->assertJsonPath('message', 'Too many attempts. Please wait a minute and try again.');
+    }
+
+    public function test_google_login_removes_a_password_set_by_someone_else(): void
+    {
+        $this->mailWorks();
+        config(['khameo.google_client_ids' => 'client-id']);
+
+        // Ibang tao ang nag-register gamit ang email na ito (hindi pa verified)
+        $this->register();
+
+        Http::fake(['oauth2.googleapis.com/*' => Http::response([
+            'aud' => 'client-id',
+            'email_verified' => 'true',
+            'email' => 'kent@example.com',
+            'sub' => 'google-123',
+        ], 200)]);
+
+        $this->postJson('/api/auth/google', ['id_token' => 'abc'])->assertOk();
+
+        // Ang password na na-set ng ibang tao ay wala na
+        $this->assertNull(User::findByEmail('kent@example.com')->password);
+        $this->postJson('/api/login', ['email' => 'kent@example.com', 'password' => 'password123'])
+            ->assertStatus(422);
+    }
+
     public function test_root_does_not_leak_framework_version(): void
     {
         $this->mailWorks();

@@ -7,17 +7,17 @@ use App\Http\Controllers\Api\VerificationController;
 use Illuminate\Support\Facades\Route;
 
 // Lahat ng route dito may prefix na /api (hal. POST /api/login).
-// Ang "throttle:10,1" ay 10 requests kada 1 minuto bawat IP.
+// Ang "throttle:login" at "throttle:mail" ay nasa AppServiceProvider.
 
 // --- Public (hindi kailangan ng token) ---
-Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:10,1');
-Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:10,1');
+Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:mail');
+Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:login');
 
-Route::post('/verify-code', [VerificationController::class, 'verify'])->middleware('throttle:20,1');
-Route::post('/resend-code', [VerificationController::class, 'resend'])->middleware('throttle:6,1');
+Route::post('/verify-code', [VerificationController::class, 'verify'])->middleware('throttle:login');
+Route::post('/resend-code', [VerificationController::class, 'resend'])->middleware('throttle:mail');
 
-Route::post('/forgot-password', [PasswordResetController::class, 'forgot'])->middleware('throttle:6,1');
-Route::post('/reset-password', [PasswordResetController::class, 'reset'])->middleware('throttle:10,1');
+Route::post('/forgot-password', [PasswordResetController::class, 'forgot'])->middleware('throttle:mail');
+Route::post('/reset-password', [PasswordResetController::class, 'reset'])->middleware('throttle:login');
 
 Route::post('/auth/google', GoogleAuthController::class)->middleware('throttle:10,1');
 

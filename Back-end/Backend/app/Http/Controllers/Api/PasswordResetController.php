@@ -25,11 +25,10 @@ class PasswordResetController extends Controller
             'email.email' => 'Enter a valid email address.',
         ]);
 
-        $user = User::where('email', strtolower(trim($data['email'])))->first();
+        $user = User::findByEmail($data['email']);
 
         if (! $user) {
-            $message = 'No account found with this email.';
-            return response()->json(['message' => $message, 'errors' => ['email' => [$message]]], 422);
+            return $this->fieldError('email', 'No account found with this email.');
         }
 
         // Gamit natin ang password broker ng Laravel para sa token (ligtas at may expiry).
@@ -61,13 +60,14 @@ class PasswordResetController extends Controller
         $data = $request->validate([
             'token' => ['required', 'string'],
             'email' => ['required', 'email'],
-            'password' => ['required', 'string', 'min:8', 'confirmed'],
+            'password' => ['required', 'string', 'min:8', 'max:64', 'confirmed'],
         ], [
             'password.required' => 'Password is required.',
             'password.min' => 'Password must be at least 8 characters.',
+            'password.max' => 'Password must be 64 characters or less.',
             'password.confirmed' => 'Password must match.',
         ]);
-        $data['email'] = strtolower(trim($data['email']));
+        $data['email'] = User::cleanEmail($data['email']);
 
         // Tinitingnan ng Laravel kung tama at hindi pa expired ang token.
         $status = Password::reset($data, function (User $user, string $password) {

@@ -1,4 +1,7 @@
 <?php
 
-// Walang custom provider. Lahat ng kailangan, nasa services at controllers na.
-return [];
+use App\Providers\AppServiceProvider;
+
+return [
+    AppServiceProvider::class,
+];

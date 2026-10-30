@@ -15,6 +15,10 @@ php artisan migrate --force || echo "WARNING: migrate failed. Check DB_* setting
 # I-on ang Row Level Security sa lahat ng tables (proteksyon sa Supabase)
 php artisan khameo:enable-rls || echo "WARNING: could not enable RLS."
 
+# Linis: burahin ang expired na login tokens at lumang reset tokens (para hindi dumami sa database)
+php artisan sanctum:prune-expired --hours=24 || true
+php artisan auth:clear-resets || true
+
 # Pabilisin ang app sa production
 php artisan config:cache
 php artisan route:cache

@@ -4,14 +4,13 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
-use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
-    use HasApiTokens, Notifiable;
+    use HasApiTokens;
 
-    protected $fillable = ['email', 'password', 'google_id', 'email_verified_at'];
+    protected $fillable = ['email', 'password'];
     protected $hidden = ['password', 'remember_token'];
 
     protected function casts(): array
@@ -30,7 +29,18 @@ class User extends Authenticatable
     // Laging lowercase at walang space ang email
     public function setEmailAttribute(string $value): void
     {
-        $this->attributes['email'] = strtolower(trim($value));
+        $this->attributes['email'] = self::cleanEmail($value);
+    }
+
+    public static function cleanEmail(string $email): string
+    {
+        return strtolower(trim($email));
+    }
+
+    // Hanapin ang user gamit ang email (kahit malaki ang letters o may space)
+    public static function findByEmail(string $email): ?self
+    {
+        return self::where('email', self::cleanEmail($email))->first();
     }
 
     // Ito lang ang ipinapakita sa app (walang password o iba pang sensitive).

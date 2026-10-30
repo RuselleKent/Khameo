@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Exceptions\MailFailedException;
 use App\Models\User;
 use App\Models\VerificationCode;
+use Illuminate\Support\Facades\DB;
 
 // Dito lahat ng rules ng 6-digit code: gawa, padala, at check.
 class VerificationCodeService
@@ -69,40 +70,47 @@ class VerificationCodeService
      */
     public function verify(User $user, string $code): array
     {
-        $row = VerificationCode::where('user_id', $user->id)->where('purpose', self::PURPOSE)->first();
+        // Naka-lock ang row habang tinitingnan, para hindi malusutan ng
+        // sabay-sabay na hula ang limit na 5 tries.
+        return DB::transaction(function () use ($user, $code) {
+            $row = VerificationCode::where('user_id', $user->id)
+                ->where('purpose', self::PURPOSE)
+                ->lockForUpdate()
+                ->first();
 
-        if (! $row) {
-            return $this->invalid();
-        }
-        if ($row->locked_until && $row->locked_until->isFuture()) {
-            return $this->locked($row);
-        }
-        if ($row->expires_at->isPast()) {
-            return ['ok' => false, 'reason' => 'expired', 'message' => 'Code expired. Please request a new one.'];
-        }
-
-        // Mali ang code
-        if (! hash_equals($row->code_hash, $this->hash($code))) {
-            $row->attempts++;
-
-            if ($row->attempts >= self::MAX_ATTEMPTS) {
-                $row->attempts = 0;
-                $row->locked_until = now()->addMinutes(self::LOCK_MINUTES);
-                $row->save();
+            if (! $row) {
+                return $this->invalid();
+            }
+            if ($row->locked_until && $row->locked_until->isFuture()) {
                 return $this->locked($row);
             }
+            if ($row->expires_at->isPast()) {
+                return ['ok' => false, 'reason' => 'expired', 'message' => 'Code expired. Please request a new one.'];
+            }
 
-            $row->save();
-            return $this->invalid();
-        }
+            // Mali ang code
+            if (! hash_equals($row->code_hash, $this->hash($code))) {
+                $row->attempts++;
 
-        // Tama! Burahin ang code (isang gamit lang) at i-mark na verified.
-        $row->delete();
-        if (! $user->email_verified_at) {
-            $user->forceFill(['email_verified_at' => now()])->save();
-        }
+                if ($row->attempts >= self::MAX_ATTEMPTS) {
+                    $row->attempts = 0;
+                    $row->locked_until = now()->addMinutes(self::LOCK_MINUTES);
+                    $row->save();
+                    return $this->locked($row);
+                }
 
-        return ['ok' => true];
+                $row->save();
+                return $this->invalid();
+            }
+
+            // Tama! Burahin ang code (isang gamit lang) at i-mark na verified.
+            $row->delete();
+            if (! $user->email_verified_at) {
+                $user->forceFill(['email_verified_at' => now()])->save();
+            }
+
+            return ['ok' => true];
+        });
     }
 
     // HMAC gamit ang APP_KEY, kaya hindi mahuhulaan ang hash kahit makuha ang database.
