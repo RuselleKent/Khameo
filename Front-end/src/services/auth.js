@@ -14,7 +14,7 @@ export const setToken = (newToken) => {
 // Tinatawag ito pagbukas ng app para gising na siya pagdating sa login screen.
 export function wakeServer() {
     const root = API_URL.replace(/\/api\/?$/, '');
-    fetch(root + '/up').catch(() => {});
+    fetch(root + '/up', { mode: 'no-cors' }).catch(() => {});
 }
 
 // Pangkalahatang function sa pagtawag ng API

@@ -10,7 +10,6 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Validator;
 
 // Register, login, logout, at "sino ako" (me).
 class AuthController extends Controller
@@ -20,27 +19,27 @@ class AuthController extends Controller
     // POST /api/register
     public function register(Request $request): JsonResponse
     {
-        $data = Validator::make($request->all(), [
+        $data = $request->validate([
             'email' => ['required', 'email:rfc', 'max:255'],
-            'password' => ['required', 'string', 'min:8', 'confirmed'],
+            'password' => ['required', 'string', 'min:8', 'max:64', 'confirmed'],
         ], [
             'email.required' => 'Email is required.',
             'email.email' => 'Enter a valid email address.',
             'password.required' => 'Password is required.',
             'password.min' => 'Password must be at least 8 characters.',
+            'password.max' => 'Password must be 64 characters or less.',
             'password.confirmed' => 'Password must match.',
-        ])->validate();
+        ]);
 
-        $email = strtolower(trim($data['email']));
-        $user = User::where('email', $email)->first();
+        $user = User::findByEmail($data['email']);
 
         // May verified na account na gamit ang email na ito
-        if ($user && $user->email_verified_at) {
+        if ($user?->email_verified_at) {
             return $this->fieldError('email', 'Email is already taken.');
         }
 
         // Kapag may account pero hindi pa verified, pwede ulitin ang signup (bagong password).
-        $user = $user ?? new User(['email' => $email]);
+        $user ??= new User(['email' => $data['email']]);
         $user->password = $data['password']; // kusang naha-hash dahil sa model
         $user->save();
 
@@ -53,7 +52,7 @@ class AuthController extends Controller
     // POST /api/login
     public function login(Request $request): JsonResponse
     {
-        $data = Validator::make($request->all(), [
+        $data = $request->validate([
             'email' => ['required', 'email:rfc'],
             'password' => ['required', 'string'],
             'remember' => ['sometimes', 'boolean'],
@@ -61,9 +60,9 @@ class AuthController extends Controller
             'email.required' => 'Email is required.',
             'email.email' => 'Enter a valid email address.',
             'password.required' => 'Password is required.',
-        ])->validate();
+        ]);
 
-        $user = User::where('email', strtolower(trim($data['email'])))->first();
+        $user = User::findByEmail($data['email']);
 
         if (! $user) {
             return $this->fieldError('email', 'No account found with this email.');
@@ -117,11 +116,5 @@ class AuthController extends Controller
         $expires = $remember ? now()->addDays(30) : now()->addDay();
 
         return $user->createToken('mobile', ['*'], $expires)->plainTextToken;
-    }
-
-    // Error na nakadikit sa isang field (lalabas sa ilalim ng input sa app).
-    private function fieldError(string $field, string $message): JsonResponse
-    {
-        return response()->json(['message' => $message, 'errors' => [$field => [$message]]], 422);
     }
 }

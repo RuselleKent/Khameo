@@ -4,6 +4,7 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
+use Illuminate\Http\Exceptions\ThrottleRequestsException;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -14,14 +15,24 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware) {
         // Nasa likod ng proxy ng Render ang app. Kailangan ito para tama
-        // ang https at IP ng user (importante sa throttle / rate limit).
+        // ang https at IP ng user (importante sa rate limit).
         $middleware->trustProxies(at: '*');
     })
     ->withExceptions(function (Exceptions $exceptions) {
         // Lahat ng /api/* ay laging JSON ang sagot, kahit may error.
-        // Para hindi mag-redirect o mag-HTML error page papunta sa phone.
         $exceptions->shouldRenderJsonWhen(function (Request $request) {
             return $request->is('api/*') || $request->expectsJson();
+        });
+
+        // Malinaw na message kapag sobrang dami na ng try
+        $exceptions->render(function (ThrottleRequestsException $e, Request $request) {
+            if ($request->is('api/*')) {
+                return response()->json(
+                    ['message' => 'Too many attempts. Please wait a minute and try again.'],
+                    429,
+                    $e->getHeaders()
+                );
+            }
         });
     })
     ->create();

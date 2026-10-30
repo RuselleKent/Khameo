@@ -2,7 +2,7 @@
 
 // --- Code verification ---
 export const CODE_LENGTH = 6; // ilang digits ang code
-export const RESEND_SECONDS = 59; // hintay bago makapag-resend
+export const RESEND_SECONDS = 60; // hintay bago makapag-resend (pareho sa Laravel)
 export const MAX_CODE_ATTEMPTS = 5;
 export const LOCKOUT_MINUTES = 5;
 
@@ -19,4 +19,3 @@ export const API_URL = process.env.EXPO_PUBLIC_API_URL || PRODUCTION_API_URL;
 // Gaano katagal maghihintay sa server bago sumuko (milliseconds).
 // 60 seconds, kasi ang free Render ay natutulog at ~1 minute bago magising.
 export const REQUEST_TIMEOUT_MS = 60000;
-
